@@ -20,13 +20,11 @@ export function EventsProvider({ children }: { children: React.ReactNode }) {
   const mountedRef = useRef(true)
   const eventsHookRef = useRef(eventsHook)
 
-  // Keep the ref updated
   useEffect(() => {
     eventsHookRef.current = eventsHook
   }, [eventsHook])
 
   const refreshEventCounts = useCallback(async () => {
-    console.log("🔄 Refreshing event counts...")
     try {
       setIsLoading(true)
       const [upcoming, allEvents] = await Promise.all([
@@ -41,7 +39,6 @@ export function EventsProvider({ children }: { children: React.ReactNode }) {
       
       setUpcomingEventsCount(upcomingCount)
       setTotalEventsCount(totalCount)
-      console.log(`✅ Events Context Updated: ${upcomingCount} upcoming, ${totalCount} total`)
     } catch (error) {
       console.error("❌ Failed to fetch event counts:", error)
     } finally {
@@ -51,7 +48,6 @@ export function EventsProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
-  // Initial fetch
   useEffect(() => {
     mountedRef.current = true
     refreshEventCounts()

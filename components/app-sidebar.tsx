@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/sidebar"
 import { useAuth } from "@/hooks/use-auth"
 import { useEventsContext } from "@/contexts/events-context"
+import { useMembersContext } from "@/contexts/members-context"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
@@ -38,6 +39,7 @@ import Image from "next/image"
 export function AppSidebar() {
   const { logout } = useAuth()
   const { upcomingEventsCount, totalEventsCount } = useEventsContext()
+  const { totalMembersCount } = useMembersContext()
   const pathname = usePathname()
   const [user, setUser] = useState<any>(null)
 
@@ -67,7 +69,7 @@ export function AppSidebar() {
       title: "Members",
       url: "/dashboard/users",
       icon: Users,
-      badge: null,
+      badge: totalMembersCount.toString(),
     },
     {
       title: "Events",
@@ -176,20 +178,20 @@ export function AppSidebar() {
         <div className="mx-3 p-4 rounded-xl bg-linear-to-br from-orange-50 via-white to-purple-50 border border-orange-100/50 shadow-sm">
           <div className="flex items-center gap-2 mb-3">
             <TrendingUp className="w-4 h-4 text-orange-600" />
-            <p className="text-xs font-bold text-slate-700 uppercase tracking-wide">This Week</p>
+            <p className="text-xs font-bold text-slate-700 uppercase tracking-wide">Overview</p>
           </div>
           <div className="space-y-2.5">
             <div className="flex justify-between items-center">
-              <span className="text-sm text-slate-600">New Members</span>
-              <span className="text-sm font-bold text-orange-600">+12</span>
+              <span className="text-sm text-slate-600">Total Members</span>
+              <span className="text-sm font-bold text-orange-600">{totalMembersCount}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-sm text-slate-600">Events Held</span>
-              <span className="text-sm font-bold text-purple-600">8</span>
+              <span className="text-sm text-slate-600">Upcoming Events</span>
+              <span className="text-sm font-bold text-purple-600">{upcomingEventsCount}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-sm text-slate-600">Attendance</span>
-              <span className="text-sm font-bold text-green-600">92%</span>
+              <span className="text-sm text-slate-600">Total Events</span>
+              <span className="text-sm font-bold text-green-600">{totalEventsCount}</span>
             </div>
           </div>
         </div>

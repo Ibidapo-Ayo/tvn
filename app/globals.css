@@ -86,16 +86,16 @@
 
 .react-datepicker__day {
   border-radius: 0.5rem;
-}
+  }
 
 .react-datepicker__day:hover {
   background-color: rgb(255 237 213);
-}
+  }
 
 .react-datepicker__day--selected {
   background-color: rgb(234 88 12);
   color: white;
-}
+  }
 
 .react-datepicker__day--selected:hover {
   background-color: rgb(194 65 12);
@@ -118,11 +118,11 @@
 
 .react-datepicker__time-list-item--selected:hover {
   background-color: rgb(194 65 12);
-}
+  }
 
 .react-datepicker__time-list-item:hover {
   background-color: rgb(255 237 213);
-}
+  }
 
 .react-datepicker__navigation-icon::before {
   border-color: white;

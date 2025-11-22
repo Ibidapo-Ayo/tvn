@@ -70,14 +70,14 @@ export function LoginForm() {
           iconAlt="password"
         />
 
-        <Button
-          type="submit"
+      <Button
+        type="submit"
           className="w-full h-11 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold mt-6 rounded-xl shadow-lg"
-          disabled={isLoading}
-        >
-          {isLoading ? "Signing In..." : "Sign In"}
-        </Button>
-      </form>
+        disabled={isLoading}
+      >
+        {isLoading ? "Signing In..." : "Sign In"}
+      </Button>
+    </form>
     </Form>
   )
 }

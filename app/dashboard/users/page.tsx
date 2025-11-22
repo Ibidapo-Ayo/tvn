@@ -1,6 +1,6 @@
-import { UserManagement } from "@/components/user-management"
+import { MembersList } from "@/components/members-list"
 
 export default function UsersPage() {
-  return <UserManagement />
+  return <MembersList />
 }
 

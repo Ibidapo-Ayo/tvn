@@ -9,96 +9,81 @@ import {
   TrendingUp,
   Clock,
   Cake,
+  Link,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Progress } from "@/components/ui/progress";
 import { useEffect, useState } from "react";
-import { Event } from "@/types/types";
+import { Event, Member } from "@/types/types";
 import { useRouter } from "next/navigation";
-import { useTranslate } from "next-localize";
 import { useAll } from "@/hooks/use-all";
+import { useMembersContext } from "@/contexts/members-context";
+import { useEventsContext } from "@/contexts/events-context";
+import {
+  formatDate,
+  getNextMemberBirthday,
+  upcomingBirthdaysMembers,
+} from "@/lib/utils";
 
 export function DashboardOverview() {
   const router = useRouter();
-  const { getRecentEvents, getUpcomingEvents, getAllMembers } = useAll();
+  const { getRecentEvents } = useAll();
+  const {
+    totalMembersCount,
+    members: allMembers,
+    isLoading: isMembersLoading,
+    upcomingBirthdaysMembersList,
+  } = useMembersContext();
+  const { upcomingEventsCount, isLoading: isEventsLoading } =
+    useEventsContext();
   const [recentEvents, setRecentEvents] = useState<Event[]>([]);
-  const [upcomingEventsCount, setUpcomingEventsCount] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-  const Translate = useTranslate();
-  const [totalMembers, setTotalMembers] = useState(0);
-
-
-  const upcomingBirthdays = [
-    {
-      id: 1,
-      name: "John Smith",
-      date: "Jan 15",
-      initials: "JS",
-      color: "from-blue-500 to-blue-600",
-    },
-    {
-      id: 2,
-      name: "Mary Johnson",
-      date: "Jan 16",
-      initials: "MJ",
-      color: "from-purple-500 to-purple-600",
-    },
-    {
-      id: 3,
-      name: "David Wilson",
-      date: "Jan 18",
-      initials: "DW",
-      color: "from-green-500 to-green-600",
-    },
-  ];
+  const [newMembersThisMonth, setNewMembersThisMonth] = useState(0);
+  const [membersUpcomingBirthdays, setMembersUpcomingBirthdays] = useState<
+    Member[]
+  >([]);
+  const [nextMemberBirthday, setNextMemberBirthday] = useState<{
+    nextMemberBirthday: Member[];
+    nextBirthdayText: string;
+  }>({ nextMemberBirthday: [], nextBirthdayText: "" });
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        setIsLoading(true);
+        const [recent] = await Promise.all([getRecentEvents(3)]);
 
-        const [recent, upcoming, members] = await Promise.all([
-          getRecentEvents(3),
-          getUpcomingEvents(),
-          getAllMembers(),
-        ]);
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const newMembersCount = allMembers?.filter((member: Member) => {
+          if (!member.createdAt) return false;
+          const memberDate = new Date(member.createdAt);
+          return memberDate >= startOfMonth;
+        }).length;
 
-        setTotalMembers(members.length);
-
-        // If no recent events, show the first 3 upcoming events instead
-        if (recent.length === 0 && upcoming.length > 0) {
-          setRecentEvents(upcoming.slice(0, 3));
-        } else {
-          setRecentEvents(recent);
-        }
-
-        setUpcomingEventsCount(upcoming.length);
+        setNewMembersThisMonth(newMembersCount);
+        setRecentEvents(recent);
       } catch (error) {
-        console.error("❌ Failed to fetch events from Firebase:", error);
-      } finally {
-        setIsLoading(false);
+        console.error("❌ Failed to fetch dashboard data:", error);
       }
     };
 
     fetchData();
   }, []);
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-  };
+  useEffect(() => {
+    setMembersUpcomingBirthdays(upcomingBirthdaysMembersList);
+  }, [upcomingBirthdaysMembersList]);
 
+  useEffect(() => {
+    const { nextMemberBirthday, nextBirthdayText } = getNextMemberBirthday(
+      membersUpcomingBirthdays || []
+    );
+    setNextMemberBirthday({ nextMemberBirthday, nextBirthdayText });
+  }, [membersUpcomingBirthdays]);
   return (
     <div className="space-y-6">
-      {/* Stats Cards with Beautiful Gradients */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        {/* Total Members Card */}
         <Card className="relative overflow-hidden border-none shadow-lg hover:shadow-xl transition-all duration-300">
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700"></div>
+          <div className="absolute inset-0 bg-linear-to-br from-blue-500 via-blue-600 to-blue-700"></div>
           <CardHeader className="relative pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-medium text-white/90">
@@ -111,18 +96,17 @@ export function DashboardOverview() {
           </CardHeader>
           <CardContent className="relative">
             <div className="text-3xl font-bold text-white mb-1">
-              {totalMembers}
+              {totalMembersCount}
             </div>
             <div className="flex items-center gap-1 text-white/80 text-sm">
               <TrendingUp className="h-4 w-4" />
-              <span>+0% this week</span>
+              <span>+{newMembersThisMonth} this month</span>
             </div>
           </CardContent>
         </Card>
 
-        {/* Upcoming Events Card */}
         <Card className="relative overflow-hidden border-none shadow-lg hover:shadow-xl transition-all duration-300">
-          <div className="absolute inset-0 bg-gradient-to-br from-purple-500 via-purple-600 to-purple-700"></div>
+          <div className="absolute inset-0 bg-linear-to-br from-purple-500 via-purple-600 to-purple-700"></div>
           <CardHeader className="relative pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-medium text-white/90">
@@ -141,9 +125,8 @@ export function DashboardOverview() {
           </CardContent>
         </Card>
 
-        {/* Today's Attendance Card */}
         <Card className="relative overflow-hidden border-none shadow-lg hover:shadow-xl transition-all duration-300">
-          <div className="absolute inset-0 bg-gradient-to-br from-green-500 via-green-600 to-green-700"></div>
+          <div className="absolute inset-0 bg-linear-to-br from-green-500 via-green-600 to-green-700"></div>
           <CardHeader className="relative pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-medium text-white/90">
@@ -155,16 +138,13 @@ export function DashboardOverview() {
             </div>
           </CardHeader>
           <CardContent className="relative">
-            <div className="text-3xl font-bold text-white mb-1">
-              {0}
-            </div>
+            <div className="text-3xl font-bold text-white mb-1">{0}</div>
             <p className="text-white/80 text-sm">Members present</p>
           </CardContent>
         </Card>
 
-        {/* Upcoming Birthdays Card */}
         <Card className="relative overflow-hidden border-none shadow-lg hover:shadow-xl transition-all duration-300">
-          <div className="absolute inset-0 bg-gradient-to-br from-pink-500 via-pink-600 to-rose-600"></div>
+          <div className="absolute inset-0 bg-linear-to-br from-pink-500 via-pink-600 to-rose-600"></div>
           <CardHeader className="relative pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-medium text-white/90">
@@ -177,9 +157,11 @@ export function DashboardOverview() {
           </CardHeader>
           <CardContent className="relative">
             <div className="text-3xl font-bold text-white mb-1">
-              {3}
+              {nextMemberBirthday.nextMemberBirthday?.length || 0}
             </div>
-            <p className="text-white/80 text-sm">This week</p>
+            <p className="text-white/80 text-sm">
+              {nextMemberBirthday.nextBirthdayText}
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -207,7 +189,7 @@ export function DashboardOverview() {
             </div>
           </CardHeader>
           <CardContent>
-            {isLoading ? (
+            {isEventsLoading ? (
               <div className="flex items-center justify-center py-12">
                 <div className="w-8 h-8 border-4 border-orange-200 border-t-orange-600 rounded-full animate-spin"></div>
               </div>
@@ -218,12 +200,13 @@ export function DashboardOverview() {
                     const colors: Record<string, string> = {
                       sunday_service:
                         "bg-blue-100 text-blue-700 border-blue-200",
-                      sod:
-                        "bg-purple-100 text-purple-700 border-purple-200",
-                      sop:
-                        "bg-orange-100 text-orange-700 border-orange-200",
+                      sod: "bg-purple-100 text-purple-700 border-purple-200",
+                      sop: "bg-orange-100 text-orange-700 border-orange-200",
                     };
-                    return colors[type] || "bg-slate-100 text-slate-700 border-slate-200";
+                    return (
+                      colors[type] ||
+                      "bg-slate-100 text-slate-700 border-slate-200"
+                    );
                   };
 
                   const getEventTypeName = (type: string) => {
@@ -238,10 +221,10 @@ export function DashboardOverview() {
                   return (
                     <div
                       key={event.id}
-                      className="flex items-start gap-4 p-4 rounded-xl bg-gradient-to-r from-slate-50 to-white border border-slate-100 hover:border-orange-200 hover:shadow-md transition-all duration-200 group cursor-pointer"
+                      className="flex items-start gap-4 p-4 rounded-xl bg-linear-to-r from-slate-50 to-white border border-slate-100 hover:border-orange-200 hover:shadow-md transition-all duration-200 group cursor-pointer"
                       onClick={() => router.push("/dashboard/events")}
                     >
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-sm group-hover:shadow-md transition-all">
+                      <div className="w-12 h-12 rounded-xl bg-linear-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-sm group-hover:shadow-md transition-all">
                         <Calendar className="h-6 w-6 text-white" />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -283,7 +266,7 @@ export function DashboardOverview() {
               </div>
             ) : (
               <div className="text-center py-12">
-                <div className="w-20 h-20 bg-gradient-to-br from-orange-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="w-20 h-20 bg-linear-to-br from-orange-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Calendar className="h-10 w-10 text-orange-500" />
                 </div>
                 <h3 className="text-lg font-semibold text-slate-900 mb-2">
@@ -294,7 +277,7 @@ export function DashboardOverview() {
                 </p>
                 <Button
                   size="sm"
-                  className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white"
+                  className="bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white"
                   onClick={() => router.push("/dashboard/events")}
                 >
                   <Calendar className="h-4 w-4 mr-2" />
@@ -312,82 +295,70 @@ export function DashboardOverview() {
               <CardTitle className="text-xl font-bold text-slate-900">
                 Upcoming Birthdays
               </CardTitle>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-pink-600 hover:text-pink-700 hover:bg-pink-50"
-              >
-                View All
-              </Button>
+              <Link href="/dashboard/birthdays">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-pink-600 hover:text-pink-700 hover:bg-pink-50"
+                >
+                  View All
+                </Button>
+              </Link>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {upcomingBirthdays.map((person) => (
-                <div
-                  key={person.id}
-                  className="flex items-center gap-4 p-4 rounded-xl bg-gradient-to-r from-slate-50 to-white border border-slate-100 hover:border-pink-200 hover:shadow-md transition-all duration-200 group"
-                >
-                  <Avatar className="h-12 w-12 border-2 border-white shadow-md">
-                    <AvatarFallback
-                      className={`bg-gradient-to-br ${person.color} text-white font-semibold`}
-                    >
-                      {person.initials}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-slate-900">
-                      {person.name}
-                    </h4>
-                    <div className="flex items-center gap-1 text-sm text-slate-600">
-                      <Cake className="h-3.5 w-3.5" />
-                      <span>{person.date}</span>
-                    </div>
-                  </div>
-                  <Button
-                    size="sm"
-                    className="bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white shadow-sm"
+            {isMembersLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="w-8 h-8 border-4 border-orange-200 border-t-orange-600 rounded-full animate-spin"></div>
+              </div>
+            ) : membersUpcomingBirthdays.length > 0 ? (
+              <div className="space-y-4">
+                {membersUpcomingBirthdays.map((person) => (
+                  <div
+                    key={person.id}
+                    className="flex items-center gap-4 p-4 rounded-xl bg-linear-to-r from-slate-50 to-white border border-slate-100 hover:border-pink-200 hover:shadow-md transition-all duration-200 group"
                   >
-                    Send Wish
-                  </Button>
+                    <Avatar className="h-12 w-12 border-2 border-white shadow-md">
+                      <AvatarFallback
+                        className={`bg-linear-to-br from-pink-500 to-rose-600 text-white font-semibold`}
+                      >
+                        {person.name?.charAt(0)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-slate-900">
+                        {person.name}
+                      </h4>
+                      <div className="flex items-center gap-1 text-sm text-slate-600">
+                        <Cake className="h-3.5 w-3.5" />
+                        <span>{formatDate(person.dob as string)}</span>
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      className="bg-linear-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white shadow-sm"
+                    >
+                      Send Wish
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <div className="w-20 h-20 bg-linear-to-br from-orange-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Gift className="h-10 w-10 text-orange-500" />
                 </div>
-              ))}
-            </div>
+                <h3 className="text-lg font-semibold text-slate-900 mb-2">
+                  No Upcoming Birthdays
+                </h3>
+                <p className="text-slate-500 mb-4">
+                  No upcoming birthdays found.
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
-
-      {/* Attendance Progress */}
-      <Card className="shadow-lg border-slate-200">
-        <CardHeader>
-          <CardTitle className="text-xl font-bold text-slate-900">
-            Weekly Attendance Progress
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between text-sm font-medium">
-              <span className="text-slate-700">Sunday Service</span>
-              <span className="text-green-600">85%</span>
-            </div>
-            <Progress value={85} className="h-3 bg-slate-100" />
-          </div>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between text-sm font-medium">
-              <span className="text-slate-700">Midweek Prayer</span>
-              <span className="text-blue-600">72%</span>
-            </div>
-            <Progress value={72} className="h-3 bg-slate-100" />
-          </div>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between text-sm font-medium">
-              <span className="text-slate-700">Youth Meeting</span>
-              <span className="text-purple-600">68%</span>
-            </div>
-            <Progress value={68} className="h-3 bg-slate-100" />
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

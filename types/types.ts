@@ -1,49 +1,60 @@
-export interface User {
+export interface Member {
   // System Fields
   id: string
-  membershipId?: string // Unique auto-generated membership ID
-  email: string
-  role: "admin" | "user" | "pastor" | "leader" | "member"
-  createdAt: string
-  name: string
-  age: number
-  gender: "male" | "female"
-  dateOfBirth: string
-  birthday: string 
-  nationality: string
-  stateOfOrigin: string
-  localGovernmentOfOrigin: string
-  stateOfResidence: string
-  localGovernmentOfResidence: string
-  cityOfResidence: string
-  address: string
-  positionInFamily: string 
-  familySize: number
-  currentEducationalLevel: string
-  level?: string 
-  school?: string 
-  university?: string 
-  nin?: string 
-  userCategory?: "members" | "polished_pillars" | "just_men" | "visionary_kids" | "married_engaged" 
-  community: string 
-  department: string 
-  stewardsDepartment?: string 
+  createdAt?: string // ISO string for tracking when member was added
   
-  phone: string
-  guardianOrParentContact?: string
-  nextOfKin: {
+  // Personal Information
+  name: string
+  email?: string
+  dob: any // Firestore Timestamp {seconds, nanoseconds} or ISO string
+  gender: "male" | "female" | string
+  nationality: string
+  nin?: string 
+  
+  // Location Information
+  state_of_origin: string
+  state_of_residence: string
+  lga: string // Local Government Area
+  city_of_residence: string
+  residential_address: string
+  
+  // Family Information
+  family_size: number
+  position_in_family: string
+  
+  // Education
+  highest_level_of_education: string
+  
+  // Contact Information
+  phone_number: string
+  g_phone_number?: string // Guardian phone number
+  
+  // Next of Kin
+  next_of_kin?: {
     name: string
     relationship: string
     phone: string
     address?: string
   }
   
-  accountDetails?: {
-    bankName: string
-    accountNumber: string
-    accountName: string
+  // Bank Details
+  bank_details?: {
+    account_name: string
+    account_number?: string
+    bank_name?: string
   }
-  passportPhoto?: string 
+  
+  // Church Information
+  user_category?: string // "Just men", "Polished Pillars", etc.
+  
+  // Attachments
+  passport_photo_url?: string
+  }
+
+// Keep User interface for backward compatibility with auth
+export interface User extends Member {
+  role?: "admin" | "user" | "pastor" | "leader" | "member"
+  membershipId?: string
 }
 
 export interface Event {
@@ -96,56 +107,3 @@ export interface MembershipCard {
   qrCode?: string // For scanning
 }
 
-export interface CreateMemberData {
-  // Personal Information
-  name: string
-  email?: string
-  dob: string
-  birthday?: string
-  gender: string
-  nationality: string
-  nin?: string
-  
-  // Family Information
-  family_size?: string
-  family_position?: string
-  
-  // Education Information
-  education_level: string
-  school?: string
-  university?: string
-  
-  // Location Information
-  state_of_origin: string
-  lga_of_origin?: string
-  state_of_residence: string
-  lga_of_residence?: string
-  city_of_residence?: string
-  address?: string
-  
-  // Church Information
-  community: string
-  department: string
-  category?: string
-  
-  // Contact Information
-  phone_number: string
-  phone_contact?: string
-  guardian_contact?: string
-  
-  // Next of Kin
-  next_of_kin?: string
-  
-  // Attachments & Security
-  picture_url?: string
-  fingerprint_data?: string
-  
-  // Account Details
-  account_details?: string
-  
-  // Role
-  role?: string
-  
-  // Any additional fields
-  [key: string]: any
-}
