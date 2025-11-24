@@ -14,15 +14,12 @@ import {
 } from "firebase/firestore";
 import { Event } from "@/types/types";
 
-// Utility functions to extract date and time from Firestore timestamp
 const extractDateFromTimestamp = (timestamp: any): string => {
   try {
-    // Handle Firestore Timestamp object {seconds, nanoseconds}
     if (timestamp && typeof timestamp === 'object' && 'seconds' in timestamp) {
       const date = new Date(timestamp.seconds * 1000);
       return date.toISOString().split('T')[0]; // Returns YYYY-MM-DD
     }
-    // Handle ISO string
     if (typeof timestamp === 'string') {
       const date = new Date(timestamp);
       return date.toISOString().split('T')[0];
@@ -36,7 +33,6 @@ const extractDateFromTimestamp = (timestamp: any): string => {
 
 const extractTimeFromTimestamp = (timestamp: any): string => {
   try {
-    // Handle Firestore Timestamp object {seconds, nanoseconds}
     if (timestamp && typeof timestamp === 'object' && 'seconds' in timestamp) {
       const date = new Date(timestamp.seconds * 1000);
       return date.toLocaleTimeString('en-US', { 
@@ -45,7 +41,6 @@ const extractTimeFromTimestamp = (timestamp: any): string => {
         hour12: true 
       });
     }
-    // Handle ISO string
     if (typeof timestamp === 'string') {
       const date = new Date(timestamp);
       return date.toLocaleTimeString('en-US', { 
@@ -63,7 +58,6 @@ const extractTimeFromTimestamp = (timestamp: any): string => {
 
 const convertTimestampToISO = (timestamp: any): string => {
   try {
-    // Handle Firestore Timestamp object {seconds, nanoseconds}
     if (timestamp && typeof timestamp === 'object' && 'seconds' in timestamp) {
       return new Date(timestamp.seconds * 1000).toISOString();
     }
@@ -79,10 +73,8 @@ const convertTimestampToISO = (timestamp: any): string => {
 };
 
 const processEventData = (eventData: any): Event => {
-  // Convert Firestore timestamp to ISO string for the date field
   const dateISO = convertTimestampToISO(eventData.date);
   
-  // Extract time if not already present
   const time = eventData.time || extractTimeFromTimestamp(eventData.date);
   
   return {
@@ -112,8 +104,6 @@ export function useEvents() {
         const dateB = new Date(b.createdAt || 0).getTime();
         return dateB - dateA;
       });
-
-      console.log("events", events);
       return events;
     } catch (error: any) {
       console.error("❌ Failed to fetch all events:", error);
@@ -125,7 +115,6 @@ export function useEvents() {
     try {
       const eventsRef = collection(db, "events");
       
-      // Fetch all events first (to avoid index issues)
       const querySnapshot = await getDocs(eventsRef);
 
       const events: Event[] = [];
@@ -166,8 +155,6 @@ export function useEvents() {
   const getRecentEvents = async (limit: number = 5): Promise<Event[]> => {
     try {
       const eventsRef = collection(db, "events");
-      
-      // Fetch all events first (to avoid index issues)
       const querySnapshot = await getDocs(eventsRef);
 
       const events: Event[] = [];
@@ -176,16 +163,13 @@ export function useEvents() {
       querySnapshot.forEach((doc) => {
         const rawData = doc.data();
         if (rawData.date) {
-          // Convert Firestore timestamp to milliseconds for comparison
           let eventTimestamp: number;
           if (typeof rawData.date === 'object' && 'seconds' in rawData.date) {
             eventTimestamp = rawData.date.seconds * 1000;
           } else {
-            eventTimestamp = new Date(rawData.date).getTime();
+            eventTimestamp = new Date(rawData.date).getTime();  
           }
-          
-          // Only include past events
-          if (eventTimestamp < todayTimestamp) {
+          if (eventTimestamp >= todayTimestamp) {
             const eventData = processEventData({
               id: doc.id,
               ...rawData,
@@ -195,7 +179,6 @@ export function useEvents() {
         }
       });
 
-      // Sort by date descending (most recent first)
       events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
       return events.slice(0, limit);
@@ -207,10 +190,8 @@ export function useEvents() {
 
   const createEvent = async (eventData: Omit<Event, "id">) => {
     try {
-      // Combine date and time into a timestamp if both are provided
       let timestamp = eventData.date;
       if (eventData.time && eventData.date) {
-        // If date is in YYYY-MM-DD format and time is provided, combine them
         const dateStr = eventData.date.includes('T') ? eventData.date : `${eventData.date}T${eventData.time}`;
         timestamp = new Date(dateStr).toISOString();
       }
