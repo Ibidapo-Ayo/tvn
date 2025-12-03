@@ -61,11 +61,11 @@ export interface Event {
   id: string
   title: string
   description: string
-  date: string // ISO string (converted from Firestore Timestamp {seconds, nanoseconds})
-  time?: string // extracted time from timestamp (e.g., "02:30 PM")
+  date: string | Date // ISO string (converted from Firestore Timestamp {seconds, nanoseconds})
+  time?: string | Date // extracted time from timestamp (e.g., "02:30 PM")
   type: "sunday_service" | "sod" | "sop"
   createdBy?: string
-  attendees: string[] 
+  attendees?: string[] 
   createdAt?: string
 }
 

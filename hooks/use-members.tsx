@@ -1,114 +1,49 @@
-"use client";
-import { db } from "@/lib/firebase";
-import { 
-  collection, 
-  getDocs, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  doc,
-  query,
-  orderBy
-} from "firebase/firestore";
-import { Member } from "@/types/types";
+"use client"
 
-const processMemberData = (data: any): Member => {
-  let dobString = "";
-  if (data.dob && typeof data.dob === 'object' && 'seconds' in data.dob) {
-    const date = new Date(data.dob.seconds * 1000);
-    dobString = date.toISOString();
-  } else if (typeof data.dob === 'string') {
-    dobString = data.dob;
-  }
+import { useMemo } from "react"
+import { Member } from "@/types/types"
 
-  let createdAtString = data.createdAt;
-  if (data.createdAt && typeof data.createdAt === 'object' && 'seconds' in data.createdAt) {
-    createdAtString = new Date(data.createdAt.seconds * 1000).toISOString();
-  }
+type CreateMemberPayload = Omit<Member, "id">
 
-  return {
-    ...data,
-    dob: dobString,
-    createdAt: createdAtString,
-  } as Member;
-};
-
-export function useMembers() {
-  const getAllMembers = async (): Promise<Member[]> => {
-    try {
-      const membersRef = collection(db, "members");
-      const querySnapshot = await getDocs(membersRef);
-      const members: Member[] = [];
-      querySnapshot.forEach((doc) => {
-        const memberData = processMemberData({ id: doc.id, ...doc.data() });
-        members.push(memberData);
-      });
-      return members;
-    } catch (error: any) {
-      throw error;
-    }
-  };
-
-  const getRecentMembers = async (limit: number = 10): Promise<Member[]> => {
-    try {
-      const membersRef = collection(db, "members");
-      const q = query(membersRef, orderBy("createdAt", "desc"));
-      const querySnapshot = await getDocs(q);
-      const members: Member[] = [];
-      let count = 0;
-      querySnapshot.forEach((doc) => {
-        if (count < limit) {
-          const memberData = processMemberData({ id: doc.id, ...doc.data() });
-          members.push(memberData);
-          count++;
-        }
-      });
-      return members;
-    } catch (error: any) {
-      throw error;
-    }
-  };
-
-  const createMember = async (memberData: Omit<Member, "id">): Promise<Member> => {
-    try {
-      const memberDoc = {
-        ...memberData,
-        createdAt: new Date().toISOString(),
-      };
-
-      const docRef = await addDoc(collection(db, "members"), memberDoc);
-      return processMemberData({ id: docRef.id, ...memberDoc });
-    } catch (error: any) {
-      throw error;
-    }
-  };
-
-  const updateMember = async (memberId: string, memberData: Partial<Member>): Promise<void> => {
-    try {
-      const memberRef = doc(db, "members", memberId);
-      await updateDoc(memberRef, {
-        ...memberData,
-        updatedAt: new Date().toISOString(),
-      });
-    } catch (error: any) {
-      throw error;
-    }
-  };
-
-  const deleteMember = async (memberId: string): Promise<void> => {
-    try {
-      const memberRef = doc(db, "members", memberId);
-      await deleteDoc(memberRef);
-    } catch (error: any) {
-      throw error;
-    }
-  };
-
-  return { 
-    getAllMembers, 
-    getRecentMembers,
-    createMember,
-    updateMember,
-    deleteMember
-  };
+interface UseMembersResult {
+  getAllMembers: () => Promise<Member[]>
+  getRecentMembers: (limit?: number) => Promise<Member[]>
+  createMember: (memberData: CreateMemberPayload) => Promise<Member>
+  updateMember: (memberId: string, memberData: Partial<Member>) => Promise<void>
+  deleteMember: (memberId: string) => Promise<void>
 }
+
+const warn = (method: string) => {
+  console.warn(
+    `[useMembers] ${method} is not implemented. Please connect this hook to your data source.`
+  )
+}
+
+export function useMembers(): UseMembersResult {
+  return useMemo(
+    () => ({
+    async getAllMembers() {
+      warn("getAllMembers")
+      return []
+    },
+    async getRecentMembers() {
+      warn("getRecentMembers")
+      return []
+    },
+    async createMember() {
+      warn("createMember")
+      throw new Error("createMember is not implemented")
+    },
+    async updateMember() {
+      warn("updateMember")
+      throw new Error("updateMember is not implemented")
+    },
+    async deleteMember() {
+      warn("deleteMember")
+      throw new Error("deleteMember is not implemented")
+    },
+    }),
+    []
+  )
+}
+

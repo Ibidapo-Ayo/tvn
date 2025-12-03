@@ -1,9 +1,9 @@
-import { Member } from "@/types/types"
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { Member } from "@/types/types";
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
 }
 
 export enum FormFieldTypes {
@@ -17,55 +17,60 @@ export enum FormFieldTypes {
 }
 
 export const formatDate = (dateString?: string) => {
-  if (!dateString) return "N/A"
-  const date = new Date(dateString)
-  if (Number.isNaN(date.getTime())) return "N/A"
+  if (!dateString) return "N/A";
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return "N/A";
   return date.toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",
-  })
-}
+  });
+};
+
+export const AuthLabels = {
+  admin: "Administrator",
+  user: "User",
+};
 
 export const checkMembersBirthday = (dob: string) => {
-  const today = new Date()
-  const birthDate = new Date(dob)
-  const age = today.getFullYear() - birthDate.getFullYear()
-  return age
-}
+  const today = new Date();
+  const birthDate = new Date(dob);
+  const age = today.getFullYear() - birthDate.getFullYear();
+  return age;
+};
 
 export const getUpcomingMembersBirthday = (dob: string) => {
-  const birthDate = new Date(dob)
-  const today = new Date()
+  const birthDate = new Date(dob);
+  const today = new Date();
 
   if (Number.isNaN(birthDate.getTime())) {
-    return today
+    return today;
   }
 
   const upcomingBirthday = new Date(
     today.getFullYear(),
     birthDate.getMonth(),
     birthDate.getDate()
-  )
+  );
 
   // If birthday already happened this year, move to next year
   if (upcomingBirthday < today) {
-    upcomingBirthday.setFullYear(upcomingBirthday.getFullYear() + 1)
+    upcomingBirthday.setFullYear(upcomingBirthday.getFullYear() + 1);
   }
 
-  return upcomingBirthday
-}
+  return upcomingBirthday;
+};
 
 export const upcomingBirthdaysMembers = (
   members: Member[] = [],
   daysWindow = 14,
   limit = 5
 ) => {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-  const futureDate = new Date(today)
-  futureDate.setDate(futureDate.getDate() + daysWindow)
+  const futureDate = new Date(today);
+  futureDate.setDate(futureDate.getDate() + daysWindow);
 
   return members
     .filter((member) => member.dob)
@@ -76,12 +81,10 @@ export const upcomingBirthdaysMembers = (
     .filter(
       ({ upcomingDate }) => upcomingDate >= today && upcomingDate <= futureDate
     )
-    .sort(
-      (a, b) => a.upcomingDate.getTime() - b.upcomingDate.getTime()
-    )
+    .sort((a, b) => a.upcomingDate.getTime() - b.upcomingDate.getTime())
     .slice(0, limit)
-    .map(({ member }) => member)
-}
+    .map(({ member }) => member);
+};
 
 export const getNextMemberBirthday = (
   members: Member[]
@@ -90,33 +93,32 @@ export const getNextMemberBirthday = (
     return {
       nextMemberBirthday: [],
       nextBirthdayText: "No upcoming birthdays",
-    }
+    };
   }
 
   const sortedMembers = [...members].sort(
     (a, b) =>
       getUpcomingMembersBirthday(a.dob as string).getTime() -
       getUpcomingMembersBirthday(b.dob as string).getTime()
-  )
+  );
 
   const nextBirthdayDate = getUpcomingMembersBirthday(
     sortedMembers[0].dob as string
-  )
+  );
 
   const daysToGo = Math.ceil(
-    (nextBirthdayDate.getTime() - new Date().getTime()) /
-      (1000 * 60 * 60 * 24)
-  )
+    (nextBirthdayDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
+  );
 
-  let nextBirthdayText = ""
+  let nextBirthdayText = "";
   if (daysToGo > 0) {
-    nextBirthdayText = `${daysToGo} day${daysToGo === 1 ? "" : "s"} to go`
+    nextBirthdayText = `${daysToGo} day${daysToGo === 1 ? "" : "s"} to go`;
   } else {
-    nextBirthdayText = "Today"
+    nextBirthdayText = "Today";
   }
 
   return {
     nextMemberBirthday: sortedMembers,
     nextBirthdayText,
-  }
-}
+  };
+};

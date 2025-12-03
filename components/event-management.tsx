@@ -94,34 +94,7 @@ export function EventManagement() {
   const onCreateSubmit = async (data: EventFormValues) => {
     try {
       setIsSaving(true)
-      
-      // Get current user from localStorage
-      const user = JSON.parse(localStorage.getItem("user") || "{}")
-      
-      // Convert date and time to proper formats
-      const dateValue = data.date instanceof Date 
-        ? data.date.toISOString().split('T')[0] 
-        : data.date
-      
-      const timeValue = data.time instanceof Date
-        ? data.time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
-        : data.time
-      
-      const eventData = {
-        title: data.title,
-        description: data.description,
-        date: dateValue,
-        time: timeValue,
-        type: data.type,
-        createdBy: user.uid || "unknown",
-        attendees: [],
-        createdAt: new Date().toISOString(),
-      }
-
-      const createdEvent = await createEvent(eventData)
-      setEvents((prev) => [createdEvent as Event, ...prev])
-      
-      // Refresh event counts in sidebar immediately
+      await createEvent(data)
       await refreshEventCounts()
       
       toast.success("Event created successfully!")
@@ -137,29 +110,24 @@ export function EventManagement() {
   }
 
   const handleEditEvent = (event: Event) => {
-    // Extract date in YYYY-MM-DD format from timestamp
-    const dateOnly = event.date.includes('T') 
+    const dateOnly = typeof event.date === 'string' && event.date.includes('T') 
       ? event.date.split('T')[0] 
-      : new Date(event.date).toISOString().split('T')[0]
+      : new Date(event.date as string).toISOString().split('T')[0]
     
-    // Convert to Date object for DatePicker
     const dateObj = new Date(dateOnly)
     
-    // Convert time to Date object for DatePicker
     let timeObj = new Date()
     const timeValue = event.time || ""
     if (timeValue) {
-      if (timeValue.includes('AM') || timeValue.includes('PM')) {
-        // Parse 12-hour format
-        const [time, period] = timeValue.split(' ')
+      if (typeof timeValue === 'string' && (timeValue.includes('AM') || timeValue.includes('PM'))) {
+        const [time, period] = typeof timeValue === 'string' ? timeValue.split(' ') : ['', '']
         const [hours, minutes] = time.split(':')
         let hour24 = parseInt(hours)
         if (period === 'PM' && hour24 !== 12) hour24 += 12
         if (period === 'AM' && hour24 === 12) hour24 = 0
         timeObj.setHours(hour24, parseInt(minutes), 0, 0)
-      } else {
-        // Parse 24-hour format
-        const [hours, minutes] = timeValue.split(':')
+      } else {  
+        const [hours, minutes] = typeof timeValue === 'string' ? timeValue.split(':') : ['0', '0']
         timeObj.setHours(parseInt(hours), parseInt(minutes), 0, 0)
       }
     }
@@ -181,22 +149,13 @@ export function EventManagement() {
     try {
       setIsSaving(true)
       
-      // Convert date and time to proper formats
-      const dateValue = data.date instanceof Date 
-        ? data.date.toISOString().split('T')[0] 
-        : data.date
+      const dateValue = data.date
+      const timeValue = data.time
       
-      const timeValue = data.time instanceof Date
-        ? data.time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
-        : data.time
-      
-      // Combine date and time into timestamp
       let timestamp = dateValue
       if (timeValue && dateValue) {
-        const dateStr = typeof dateValue === 'string' && dateValue.includes('T') 
-          ? dateValue 
-          : `${dateValue}T${timeValue}`
-        timestamp = new Date(dateStr).toISOString()
+        const dateStr = typeof dateValue === 'string' && dateValue.includes('T') ? dateValue : `${dateValue}T${timeValue}`
+        timestamp = new Date(dateStr as string).toISOString()
       }
       
       await updateEvent(selectedEvent.id, {
@@ -207,10 +166,8 @@ export function EventManagement() {
         type: data.type,
       })
       
-      // Refresh events to get the properly formatted data
       await fetchEvents()
       
-      // Refresh event counts in sidebar immediately
       await refreshEventCounts()
       
       toast.success("Event updated successfully!")
@@ -236,7 +193,6 @@ export function EventManagement() {
       await deleteEvent(eventToDelete.id)
       setEvents((prev) => prev.filter((e) => e.id !== eventToDelete.id))
       
-      // Refresh event counts in sidebar immediately
       await refreshEventCounts()
       
       toast.success("Event deleted successfully")
@@ -315,7 +271,7 @@ export function EventManagement() {
         </div>
         <Button
           onClick={() => setIsCreateEventOpen(true)}
-          className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-lg hover:shadow-xl h-12 px-6 rounded-xl font-semibold"
+          className="bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-lg hover:shadow-xl h-12 px-6 rounded-xl font-semibold"
         >
           <Plus className="h-5 w-5 mr-2" />
           Create Event
@@ -331,7 +287,7 @@ export function EventManagement() {
               className="group relative overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 border border-slate-200 hover:border-orange-400 rounded-2xl bg-white"
             >
               {/* Background Decoration */}
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-orange-100/50 to-purple-100/30 rounded-full blur-2xl -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
+              <div className="absolute top-0 right-0 w-32 h-32 bg-linear-to-br from-orange-100/50 to-purple-100/30 rounded-full blur-2xl -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
 
               <CardContent className="relative p-6">
                 <div className="space-y-5">
@@ -352,28 +308,28 @@ export function EventManagement() {
 
                   {/* Event Details */}
                   <div className="space-y-3">
-                    <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-orange-50 to-orange-50/50">
-                      <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-sm">
+                    <div className="flex items-center gap-3 p-3 rounded-xl bg-linear-to-r from-orange-50 to-orange-50/50">
+                      <div className="w-10 h-10 rounded-lg bg-linear-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-sm">
                         <Calendar className="h-5 w-5 text-white" />
                       </div>
                       <div>
                         <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">Date</p>
-                        <p className="text-sm font-bold text-slate-900">{formatDate(event.date)}</p>
-                      </div>
+                        <p className="text-sm font-bold text-slate-900">{formatDate(event.date as string)}</p>
+                        </div>
                     </div>
 
-                    <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-purple-50 to-purple-50/50">
-                      <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-sm">
+                    <div className="flex items-center gap-3 p-3 rounded-xl bg-linear-to-r from-purple-50 to-purple-50/50">
+                      <div className="w-10 h-10 rounded-lg bg-linear-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-sm">
                         <Clock className="h-5 w-5 text-white" />
                       </div>
                       <div>
                         <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">Time</p>
-                        <p className="text-sm font-bold text-slate-900">{event.time || "N/A"}</p>
+                        <p className="text-sm font-bold text-slate-900">{event.time as string || "N/A"}</p>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-green-50 to-green-50/50">
-                      <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center shadow-sm">
+                    <div className="flex items-center gap-3 p-3 rounded-xl bg-linear-to-r from-green-50 to-green-50/50">
+                      <div className="w-10 h-10 rounded-lg bg-linear-to-br from-green-500 to-green-600 flex items-center justify-center shadow-sm">
                         <Users className="h-5 w-5 text-white" />
                       </div>
                       <div className="flex-1">
@@ -416,7 +372,7 @@ export function EventManagement() {
         <Card className="shadow-lg border-slate-200 rounded-2xl">
           <CardContent className="p-12">
             <div className="text-center space-y-4">
-              <div className="w-20 h-20 bg-gradient-to-br from-orange-100 to-purple-100 rounded-full flex items-center justify-center mx-auto">
+              <div className="w-20 h-20 bg-linear-to-br from-orange-100 to-purple-100 rounded-full flex items-center justify-center mx-auto">
                 {searchQuery ? (
                   <Search className="h-10 w-10 text-orange-600" />
                 ) : (
@@ -436,7 +392,7 @@ export function EventManagement() {
               {!searchQuery && (
                 <Button
                   onClick={() => setIsCreateEventOpen(true)}
-                  className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-lg h-11 px-6 rounded-xl font-semibold"
+                  className="bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-lg h-11 px-6 rounded-xl font-semibold"
                 >
                   <Plus className="h-5 w-5 mr-2" />
                   Create Your First Event
@@ -526,7 +482,7 @@ export function EventManagement() {
                 </Button>
                 <Button
                   type="submit"
-                  className="h-11 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-xl"
+                  className="h-11 bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-xl"
                   disabled={isSaving}
                 >
                   {isSaving ? "Creating..." : "Create Event"}
@@ -607,7 +563,7 @@ export function EventManagement() {
                 </Button>
                 <Button
                   type="submit"
-                  className="h-11 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-xl"
+                  className="h-11 bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-xl"
                   disabled={isSaving}
                 >
                   {isSaving ? "Updating..." : "Update Event"}

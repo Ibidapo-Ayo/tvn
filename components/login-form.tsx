@@ -1,22 +1,21 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { Button } from "@/components/ui/button"
-import { Form } from "@/components/ui/form"
-import { toast } from "sonner"
-import { Mail, Lock } from "lucide-react"
-import { useAuth } from "@/hooks/use-auth"
-import { useRouter } from "next/navigation"
-import CustomInput from "@/components/input/CustomInput"
-import { FormFieldTypes } from "@/lib/utils"
-import { loginFormSchema, type LoginFormValues } from "@/lib/validations"
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Button } from "@/components/ui/button";
+import { Form } from "@/components/ui/form";
+import { toast } from "sonner";
+import { useAuth } from "@/components/auth-provider";
+import { useRouter } from "next/navigation";
+import CustomInput from "@/components/input/CustomInput";
+import { FormFieldTypes } from "@/lib/utils";
+import { loginFormSchema, type LoginFormValues } from "@/lib/validations";
 
 export function LoginForm() {
-  const [isLoading, setIsLoading] = useState(false)
-  const { login } = useAuth()
-  const router = useRouter()
+  const [isLoading, setIsLoading] = useState(false);
+  const { login } = useAuth();
+  const router = useRouter();
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginFormSchema),
@@ -24,26 +23,26 @@ export function LoginForm() {
       email: "",
       password: "",
     },
-  })
+  });
 
   const onSubmit = async (data: LoginFormValues) => {
-    setIsLoading(true)
+    setIsLoading(true);
 
     try {
-      const success = await login(data.email, data.password)
+      const success = await login(data.email, data.password);
       if (success) {
-        toast.success("Welcome to The Visionary Nation")
-        router.push("/dashboard")
+        toast.success("Welcome back to the TVN workspace");
+        router.push("/dashboard");
       } else {
-        toast.error("Invalid email or password. Please try again.")
+        toast.error("Invalid email or password. Please try again.");
       }
     } catch (error) {
-      console.error("Login error:", error)
-      toast.error("An unexpected error occurred. Please try again.")
+      console.error("Login error:", error);
+      toast.error("An unexpected error occurred. Please try again.");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <Form {...form}>
@@ -70,14 +69,14 @@ export function LoginForm() {
           iconAlt="password"
         />
 
-      <Button
-        type="submit"
-          className="w-full h-11 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold mt-6 rounded-xl shadow-lg"
-        disabled={isLoading}
-      >
-        {isLoading ? "Signing In..." : "Sign In"}
-      </Button>
-    </form>
+        <Button
+          type="submit"
+          className="w-full h-11 bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold mt-6 rounded-xl shadow-lg"
+          disabled={isLoading}
+        >
+          {isLoading ? "Signing In..." : "Sign In"}
+        </Button>
+      </form>
     </Form>
-  )
+  );
 }

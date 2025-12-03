@@ -81,7 +81,7 @@ export function MemberRegistrationForm() {
         createdAt: new Date().toISOString(),
       }
 
-      await createMember(memberData as any)
+        await createMember(memberData as any)
       
       // Refresh member counts in sidebar immediately
       await refreshMemberCounts()

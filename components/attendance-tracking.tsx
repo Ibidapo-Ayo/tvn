@@ -1,19 +1,14 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Badge } from "@/components/ui/badge"
 import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 import {
   Select,
   SelectContent,
@@ -21,665 +16,490 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Calendar, Users, TrendingUp, CheckCircle2, Edit, Search, Sparkles, Plus, Filter, X } from "lucide-react"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { Badge } from "@/components/ui/badge"
+import {
+  Calendar,
+  Users,
+  UserCheck,
+  Search,
+  ClipboardList,
+  Star,
+} from "lucide-react"
 import { toast } from "sonner"
 
-interface EventAttendance {
+interface AttendanceMember {
+  id: string
+  membershipId: string
+  name: string
+  email: string
+  phone: string
+}
+
+interface AttendanceEvent {
   id: string
   title: string
-  description: string
   date: string
   time: string
   type: "sunday_service" | "midweek" | "special" | "other"
-  attendees: number
-  maxCapacity: number
 }
 
+interface AttendanceRecord {
+  membershipId: string
+  name: string
+  email: string
+  phone: string
+  markedAt: string
+}
+
+const sampleEvents: AttendanceEvent[] = [
+  {
+    id: "evt-001",
+    title: "Sunday Sunrise Service",
+    date: "2025-01-19",
+    time: "07:30 AM",
+    type: "sunday_service",
+  },
+  {
+    id: "evt-002",
+    title: "Midweek Prayer Meeting",
+    date: "2025-01-22",
+    time: "06:00 PM",
+    type: "midweek",
+  },
+  {
+    id: "evt-003",
+    title: "Youth Focus Hangout",
+    date: "2025-01-25",
+    time: "11:00 AM",
+    type: "special",
+  },
+]
+
+const sampleMembers: AttendanceMember[] = [
+  {
+    id: "mem-001",
+    membershipId: "TVN-003241",
+    name: "Chinaza Obi",
+    email: "chinaza@tvn.app",
+    phone: "+234 802 123 4567",
+  },
+  {
+    id: "mem-002",
+    membershipId: "TVN-004102",
+    name: "David Okafor",
+    email: "david@tvn.app",
+    phone: "+234 701 800 2200",
+  },
+  {
+    id: "mem-003",
+    membershipId: "TVN-002887",
+    name: "Ifeoma Nwachukwu",
+    email: "ifeoma@tvn.app",
+    phone: "+234 705 110 4455",
+  },
+  {
+    id: "mem-004",
+    membershipId: "TVN-005510",
+    name: "Michael Onoja",
+    email: "michael@tvn.app",
+    phone: "+234 803 900 1234",
+  },
+]
+
 export function AttendanceTracking() {
-  const [searchQuery, setSearchQuery] = useState("")
-  const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false)
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
-  const [selectedEvent, setSelectedEvent] = useState<EventAttendance | null>(null)
-  const [attendanceInput, setAttendanceInput] = useState("")
-  
-  // Filter states
-  const [filterType, setFilterType] = useState<string>("all")
-  const [filterDateFrom, setFilterDateFrom] = useState("")
-  const [filterDateTo, setFilterDateTo] = useState("")
-  const [showFilters, setShowFilters] = useState(false)
+  const [events] = useState(sampleEvents)
+  const [members] = useState(sampleMembers)
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(
+    sampleEvents[0]?.id ?? null
+  )
+  const [membershipSearch, setMembershipSearch] = useState("")
+  const [attendanceMap, setAttendanceMap] = useState<Record<string, AttendanceRecord[]>>({})
 
-  // Create form state
-  const [createForm, setCreateForm] = useState({
-    title: "",
-    description: "",
-    date: "",
-    time: "",
-    type: "sunday_service" as EventAttendance["type"],
-    attendees: "",
-    maxCapacity: "",
-  })
+  const selectedEvent = useMemo(
+    () => events.find((event) => event.id === selectedEventId) ?? null,
+    [events, selectedEventId]
+  )
 
-  const [events, setEvents] = useState<EventAttendance[]>([
-    {
-      id: "1",
-      title: "Sunday Morning Service",
-      description: "Weekly Sunday worship service",
-      date: "2025-01-12",
-      time: "10:00 AM",
-      type: "sunday_service",
-      attendees: 156,
-      maxCapacity: 200,
-    },
-    {
-      id: "2",
-      title: "Midweek Prayer Meeting",
-      description: "Wednesday evening prayer session",
-      date: "2025-01-15",
-      time: "07:00 PM",
-      type: "midweek",
-      attendees: 89,
-      maxCapacity: 150,
-    },
-    {
-      id: "3",
-      title: "Youth Conference 2025",
-      description: "Annual youth conference",
-      date: "2025-01-20",
-      time: "09:00 AM",
-      type: "special",
-      attendees: 234,
-      maxCapacity: 300,
-    },
-    {
-      id: "4",
-      title: "Family & Friends Day",
-      description: "Special celebration service",
-      date: "2025-02-01",
-      time: "09:00 AM",
-      type: "special",
-      attendees: 0,
-      maxCapacity: 250,
-    },
-  ])
+  const filteredMembers = useMemo(() => {
+    const query = membershipSearch.trim().toLowerCase()
+    if (!query) return members
 
-  const handleOpenUpdateDialog = (event: EventAttendance) => {
-    setSelectedEvent(event)
-    setAttendanceInput(event.attendees.toString())
-    setIsUpdateDialogOpen(true)
-  }
-
-  const handleUpdateAttendance = () => {
-    if (!selectedEvent) return
-
-    const newAttendance = Number.parseInt(attendanceInput)
-
-    if (isNaN(newAttendance) || newAttendance < 0) {
-      toast.error("Please enter a valid number")
-      return
-    }
-
-    if (newAttendance > selectedEvent.maxCapacity) {
-      toast.error(`Attendance exceeds max capacity of ${selectedEvent.maxCapacity}`)
-      return
-    }
-
-    setEvents((prev) =>
-      prev.map((e) => (e.id === selectedEvent.id ? { ...e, attendees: newAttendance } : e))
+    return members.filter((member) =>
+      member.membershipId.toLowerCase().includes(query)
     )
+  }, [members, membershipSearch])
 
-    toast.success("Attendance updated successfully!")
-    setIsUpdateDialogOpen(false)
-    setSelectedEvent(null)
-    setAttendanceInput("")
-  }
+  const currentAttendance = selectedEventId
+    ? attendanceMap[selectedEventId] ?? []
+    : []
 
-  const handleCreateAttendance = () => {
-    // Validate form
-    if (!createForm.title || !createForm.date || !createForm.time) {
-      toast.error("Please fill in all required fields")
+  const alreadyMarked = (member: AttendanceMember) =>
+    currentAttendance.some((record) => record.membershipId === member.membershipId)
+
+  const handleMarkAttendance = (member: AttendanceMember) => {
+    if (!selectedEventId || !selectedEvent) {
+      toast.error("Select an event before marking attendance")
       return
     }
 
-    const attendees = Number.parseInt(createForm.attendees) || 0
-    const capacity = Number.parseInt(createForm.maxCapacity) || 100
+    setAttendanceMap((prev) => {
+      const existing = prev[selectedEventId] ?? []
+      if (existing.some((record) => record.membershipId === member.membershipId)) {
+        toast.warning(`${member.name} is already marked present`)
+        return prev
+      }
 
-    if (attendees > capacity) {
-      toast.error(`Attendance exceeds max capacity of ${capacity}`)
-      return
-    }
+      const updated: AttendanceRecord[] = [
+        ...existing,
+        {
+          membershipId: member.membershipId,
+          name: member.name,
+          email: member.email,
+          phone: member.phone,
+          markedAt: new Date().toISOString(),
+        },
+      ]
 
-    const newEvent: EventAttendance = {
-      id: `event-${Date.now()}`,
-      title: createForm.title,
-      description: createForm.description,
-      date: createForm.date,
-      time: createForm.time,
-      type: createForm.type,
-      attendees: attendees,
-      maxCapacity: capacity,
-    }
-
-    setEvents((prev) => [...prev, newEvent])
-    toast.success("Attendance record created successfully!")
-
-    // Reset form
-    setCreateForm({
-      title: "",
-      description: "",
-      date: "",
-      time: "",
-      type: "sunday_service",
-      attendees: "",
-      maxCapacity: "",
-    })
-    setIsCreateDialogOpen(false)
-  }
-
-  const clearFilters = () => {
-    setFilterType("all")
-    setFilterDateFrom("")
-    setFilterDateTo("")
-    setSearchQuery("")
-  }
-
-  const getEventColor = (type: EventAttendance["type"]) => {
-    const colors = {
-      sunday_service: "from-blue-500 to-blue-600",
-      midweek: "from-purple-500 to-purple-600",
-      special: "from-orange-500 to-orange-600",
-      other: "from-slate-500 to-slate-600",
-    }
-    return colors[type]
-  }
-
-  const getEventTypeName = (type: EventAttendance["type"]) => {
-    const names = {
-      sunday_service: "Sunday Service",
-      midweek: "Mid-Week",
-      special: "Special Event",
-      other: "Other",
-    }
-    return names[type]
-  }
-
-  const getAttendancePercentage = (attendees: number, capacity: number) => {
-    return Math.round((attendees / capacity) * 100)
-  }
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
+      toast.success(`${member.name} has been marked present`)
+      return { ...prev, [selectedEventId]: updated }
     })
   }
 
-  const getTotalAttendees = () => {
-    return filteredEvents.reduce((sum, event) => sum + event.attendees, 0)
-  }
-
-  const getAverageAttendance = () => {
-    const total = getTotalAttendees()
-    return filteredEvents.length > 0 ? Math.round(total / filteredEvents.length) : 0
-  }
-
-  // Apply filters
-  const filteredEvents = events.filter((e) => {
-    // Search filter
-    const matchesSearch =
-      e.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      e.description.toLowerCase().includes(searchQuery.toLowerCase())
-
-    // Type filter
-    const matchesType = filterType === "all" || e.type === filterType
-
-    // Date range filter
-    let matchesDateRange = true
-    if (filterDateFrom && filterDateTo) {
-      const eventDate = new Date(e.date)
-      const fromDate = new Date(filterDateFrom)
-      const toDate = new Date(filterDateTo)
-      matchesDateRange = eventDate >= fromDate && eventDate <= toDate
-    } else if (filterDateFrom) {
-      const eventDate = new Date(e.date)
-      const fromDate = new Date(filterDateFrom)
-      matchesDateRange = eventDate >= fromDate
-    } else if (filterDateTo) {
-      const eventDate = new Date(e.date)
-      const toDate = new Date(filterDateTo)
-      matchesDateRange = eventDate <= toDate
-    }
-
-    return matchesSearch && matchesType && matchesDateRange
-  })
-
-  const hasActiveFilters = filterType !== "all" || filterDateFrom || filterDateTo || searchQuery
+  const attendanceStats = useMemo(() => {
+    if (!selectedEventId) return { total: 0, unique: 0 }
+    const records = attendanceMap[selectedEventId] ?? []
+    return { total: records.length, unique: records.length }
+  }, [attendanceMap, selectedEventId])
 
   return (
     <div className="space-y-8">
-      {/* Header with Search and Filters */}
-      <div className="pt-4 space-y-4">
-        <div className="flex items-center gap-4">
-          <div className="relative flex-1 max-w-lg">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-            <Input
-              placeholder="Search events..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-12 h-12 text-base border-slate-300 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 shadow-sm"
-            />
+      <section className="relative overflow-hidden rounded-3xl border border-slate-200 bg-slate-950 text-white shadow-lg">
+        <div className="absolute inset-0 bg-linear-to-r from-slate-900 via-slate-900 to-slate-950 opacity-90" />
+        <div className="relative grid gap-8 p-8 lg:grid-cols-[minmax(0,3fr)_360px]">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/15 px-4 py-1 text-xs uppercase tracking-[0.3em] text-white/70">
+              Quick Attendance
+            </div>
+            <h1 className="mt-4 text-3xl font-semibold leading-tight text-white lg:text-4xl">
+              Mark attendance without breaking conversation
+            </h1>
+            <p className="mt-3 max-w-2xl text-sm text-white/70">
+              Pick an event, scan or type their membership ID, and log their presence. Each mark saves full member context so you never double count or lose history.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-4">
+              <div className="rounded-2xl border border-white/15 bg-white/5 px-4 py-3 shadow-inner shadow-black/30">
+                <p className="text-xs uppercase tracking-wide text-white/60">
+                  Selected event
+                </p>
+                <p className="text-lg font-semibold text-white">
+                  {selectedEvent?.title ?? "None"}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-white/15 bg-white/5 px-4 py-3 shadow-inner shadow-black/30">
+                <p className="text-xs uppercase tracking-wide text-white/60">
+                  Marked today
+                </p>
+                <p className="text-lg font-semibold text-white">
+                  {attendanceStats.total}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-white/15 bg-white/5 px-4 py-3 shadow-inner shadow-black/30">
+                <p className="text-xs uppercase tracking-wide text-white/60">
+                  Unique scans
+                </p>
+                <p className="text-lg font-semibold text-white">
+                  {attendanceStats.unique}
+                </p>
+              </div>
+            </div>
           </div>
-          <Button
-            onClick={() => setShowFilters(!showFilters)}
-            variant="outline"
-            className={`h-12 px-6 rounded-xl border-slate-300 ${showFilters ? "bg-orange-50 border-orange-400 text-orange-600" : ""}`}
-          >
-            <Filter className="h-5 w-5 mr-2" />
-            Filters
-          </Button>
-          <Button
-            onClick={() => setIsCreateDialogOpen(true)}
-            className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-lg hover:shadow-xl h-12 px-6 rounded-xl font-semibold"
-          >
-            <Plus className="h-5 w-5 mr-2" />
-            Create Record
-          </Button>
-        </div>
+          <div className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-xl backdrop-blur">
+            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-white/60">
+              Event selector
+            </p>
+            <p className="mt-2 text-base text-white/80">
+              Switch events in one click to keep the roster synced.
+            </p>
 
-        {/* Filter Panel */}
-        {showFilters && (
-          <Card className="shadow-lg border-slate-200 rounded-2xl">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold text-lg text-slate-900">Filter Events</h3>
-                {hasActiveFilters && (
-                  <Button
-                    onClick={clearFilters}
-                    variant="ghost"
-                    className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+            <div className="mt-6 w-full">
+              <label className="mb-2 flex items-center gap-2 text-white/80 font-bold text-sm uppercase tracking-widest">
+                <Calendar className="w-4 h-4 text-orange-400" />
+                Select Event
+              </label>
+              <div className="relative w-full max-w-full">
+                <Select
+                  value={selectedEventId ?? ""}
+                  onValueChange={(value) => setSelectedEventId(value)}
+                >
+                  <SelectTrigger className="h-14 w-full rounded-xl border-2 border-orange-400/20 bg-gradient-to-r from-slate-900/80 to-orange-900/30 hover:border-orange-500 transition-colors duration-200 font-semibold text-white text-base pl-5 pr-10 shadow-md focus:ring-2 focus:ring-orange-400 max-w-full overflow-hidden min-w-0">
+                    <div className="flex items-center gap-3 w-full min-w-0 overflow-hidden">
+                      <Calendar className="w-5 h-5 text-orange-400 shrink-0" />
+                      <div className="flex-1 min-w-0 truncate">
+                        {selectedEvent
+                          ? (
+                            <div className="flex flex-col min-w-0">
+                              <span className="font-bold text-white truncate max-w-[210px] sm:max-w-[320px]">
+                                {selectedEvent.title}
+                              </span>
+                              <span className="text-xs text-orange-200 mt-0.5 truncate max-w-[210px] sm:max-w-[320px]">
+                                {selectedEvent.date} • {selectedEvent.time}
+                              </span>
+                            </div>
+                          )
+                          : <span className="text-white/60">Pick an event to begin</span>
+                        }
+                      </div>
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent
+                    align="start"
+                    sideOffset={2}
+                    className="rounded-xl shadow-2xl p-2 bg-white w-full min-w-[220px] max-w-[95vw] border-0 box-border"
+                    style={{ width: "100%" }}
                   >
-                    <X className="h-4 w-4 mr-2" />
-                    Clear All
-                  </Button>
+                    <div className="max-h-72 overflow-auto custom-scrollbar pr-1">
+                      {events.length === 0 ? (
+                        <div className="px-4 py-8 text-center text-slate-400 text-base font-medium">
+                          No events to select.
+                        </div>
+                      ) : (
+                        events.map((event) => (
+                          <SelectItem
+                            key={event.id}
+                            value={event.id}
+                            className="rounded-lg px-4 py-3 mb-1 cursor-pointer transition-colors duration-100 hover:bg-orange-50/70 break-words"
+                          >
+                            <div className="flex items-center gap-2 w-full min-w-0">
+                              <div className="flex flex-col min-w-0 flex-1">
+                                <span className="font-bold text-slate-900 truncate max-w-[200px] sm:max-w-[350px]">
+                                  {event.title}
+                                </span>
+                                <span className="text-xs text-slate-500 mt-0.5 truncate max-w-[200px] sm:max-w-[350px]">
+                                  {event.date} • {event.time}
+                                </span>
+                              </div>
+                              <span className="ml-4 shrink-0 rounded-full bg-slate-50 px-2 py-0.5 text-xs font-medium text-orange-700 uppercase">
+                                {event.type.replace("_", " ")}
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))
+                      )}
+                    </div>
+                  </SelectContent>
+                </Select>
+                {!selectedEventId && (
+                  <span className="absolute right-4 top-3 text-xs text-orange-300 animate-bounce pointer-events-none">
+                    &larr; Choose
+                  </span>
                 )}
               </div>
-              <div className="grid gap-4 md:grid-cols-3">
-                <div className="space-y-2">
-                  <Label className="text-slate-700 font-medium">Event Type</Label>
-                  <Select value={filterType} onValueChange={setFilterType}>
-                    <SelectTrigger className="h-11 rounded-xl">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Types</SelectItem>
-                      <SelectItem value="sunday_service">Sunday Service</SelectItem>
-                      <SelectItem value="midweek">Mid-Week</SelectItem>
-                      <SelectItem value="special">Special Event</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
+            </div>
+
+            {selectedEvent && (
+              <div className="mt-6 space-y-4 rounded-2xl border border-white/10 bg-white/5 p-4">
+                <div className="flex items-center gap-3">
+                  <Calendar className="h-5 w-5 text-orange-300" />
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-white/60">
+                      Schedule
+                    </p>
+                    <p className="text-sm font-semibold text-white">
+                      {selectedEvent.date} • {selectedEvent.time}
+                    </p>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-slate-700 font-medium">Date From</Label>
-                  <Input
-                    type="date"
-                    value={filterDateFrom}
-                    onChange={(e) => setFilterDateFrom(e.target.value)}
-                    className="h-11 rounded-xl"
-                  />
+                <div className="flex items-center gap-3">
+                  <Users className="h-5 w-5 text-purple-300" />
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-white/60">
+                      Type
+                    </p>
+                    <p className="text-sm font-semibold text-white">
+                      {selectedEvent.type.replace("_", " ")}
+                    </p>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-slate-700 font-medium">Date To</Label>
-                  <Input
-                    type="date"
-                    value={filterDateTo}
-                    onChange={(e) => setFilterDateTo(e.target.value)}
-                    className="h-11 rounded-xl"
-                  />
+                <div className="flex items-center gap-3">
+                  <Star className="h-5 w-5 text-yellow-300" />
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-white/60">
+                      Latest mark
+                    </p>
+                    <p className="text-sm font-semibold text-white">
+                      {currentAttendance[0]?.name ?? "No one yet"}
+                    </p>
+                  </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+            )}
+          </div>
+        </div>
+      </section>
 
-      {/* Statistics Cards */}
-      <div className="grid gap-6 md:grid-cols-3">
-        <Card className="shadow-lg border-slate-200 rounded-2xl overflow-hidden">
-          <div className="h-2 bg-gradient-to-r from-orange-500 to-orange-600"></div>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <Card className="border-slate-200 shadow-lg">
+          <CardHeader className="border-b border-slate-100 pb-5">
+            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-600 mb-1">
-                  {hasActiveFilters ? "Filtered Events" : "Total Events"}
+                <CardTitle className="text-xl font-semibold text-slate-900">
+                  Scan or search members
+                </CardTitle>
+                <p className="text-sm text-slate-500">
+                  Works with scanners or manual entry. Type in the membership ID and press enter to focus the match.
                 </p>
-                <p className="text-3xl font-bold text-slate-900">{filteredEvents.length}</p>
               </div>
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-lg">
-                <Calendar className="h-7 w-7 text-white" />
-              </div>
+              <Badge variant="outline" className="rounded-full text-slate-600">
+                {filteredMembers.length} available
+              </Badge>
             </div>
+            <div className="relative mt-4">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+              <Input
+                value={membershipSearch}
+                onChange={(event) => setMembershipSearch(event.target.value)}
+                placeholder="Membership ID e.g. TVN-003241"
+                className="h-12 rounded-2xl border border-slate-300 bg-white pl-12 text-base shadow-sm focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+              />
+            </div>
+          </CardHeader>
+
+          <CardContent className="space-y-4">
+            {filteredMembers.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
+                <ClipboardList className="mx-auto h-10 w-10 text-slate-400" />
+                <p className="mt-3 text-sm font-medium text-slate-700">
+                  No members match that ID
+                </p>
+                <p className="text-xs text-slate-500">
+                  Re-check the digits or clear the search field.
+                </p>
+              </div>
+            ) : (
+              <div className="rounded-3xl border border-slate-200">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                      <TableHead>Membership ID</TableHead>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Phone</TableHead>
+                      <TableHead className="text-right">Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredMembers.map((member) => (
+                      <TableRow key={member.id} className="text-sm">
+                        <TableCell className="font-semibold text-slate-900">
+                          {member.membershipId}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span className="font-medium text-slate-900">
+                              {member.name}
+                            </span>
+                            <span className="text-xs text-slate-500">
+                              {member.email}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap text-slate-600">
+                          {member.phone}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            size="sm"
+                            className="rounded-xl bg-linear-to-r from-orange-500 to-orange-600 text-white shadow-sm"
+                            disabled={alreadyMarked(member)}
+                            onClick={() => handleMarkAttendance(member)}
+                          >
+                            {alreadyMarked(member) ? (
+                              "Marked"
+                            ) : (
+                              <>
+                                <UserCheck className="mr-1 h-4 w-4" />
+                                Mark
+                              </>
+                            )}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        <Card className="shadow-lg border-slate-200 rounded-2xl overflow-hidden">
-          <div className="h-2 bg-gradient-to-r from-purple-500 to-purple-600"></div>
-          <CardContent className="p-6">
+        <Card className="border-slate-200 shadow-lg">
+          <CardHeader className="border-b border-slate-100 pb-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-600 mb-1">Total Attendees</p>
-                <p className="text-3xl font-bold text-slate-900">{getTotalAttendees()}</p>
+                <CardTitle className="text-xl font-semibold text-slate-900">
+                  Live attendance log
+                </CardTitle>
+                <p className="text-sm text-slate-500">
+                  Everyone marked present for {selectedEvent?.title ?? "the event"}.
+                </p>
               </div>
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-lg">
-                <Users className="h-7 w-7 text-white" />
-              </div>
+              <Badge variant="outline" className="rounded-full text-slate-600">
+                {currentAttendance.length} total
+              </Badge>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-lg border-slate-200 rounded-2xl overflow-hidden">
-          <div className="h-2 bg-gradient-to-r from-green-500 to-green-600"></div>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-600 mb-1">Average Attendance</p>
-                <p className="text-3xl font-bold text-slate-900">{getAverageAttendance()}</p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {currentAttendance.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
+                <ClipboardList className="mx-auto h-10 w-10 text-slate-400" />
+                <p className="mt-3 text-sm font-medium text-slate-700">
+                  No attendance recorded
+                </p>
+                <p className="text-xs text-slate-500">
+                  Use the member table to log the first arrival.
+                </p>
               </div>
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center shadow-lg">
-                <TrendingUp className="h-7 w-7 text-white" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Events List */}
-      {filteredEvents.length > 0 ? (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {filteredEvents.map((event) => {
-            const percentage = getAttendancePercentage(event.attendees, event.maxCapacity)
-            const isHighAttendance = percentage >= 80
-
-            return (
-              <Card
-                key={event.id}
-                className="group relative overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 border border-slate-200 hover:border-orange-400 rounded-2xl bg-white"
-              >
-                {/* Background Decoration */}
-                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-orange-100/50 to-purple-100/30 rounded-full blur-2xl -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
-
-                <CardContent className="relative p-6">
-                  <div className="space-y-5">
-                    {/* Title and Type */}
-                    <div className="space-y-2">
-                      <div className="flex items-start justify-between gap-2">
-                        <h3 className="font-bold text-xl text-slate-900 group-hover:text-orange-600 transition-colors flex-1">
-                          {event.title}
-                        </h3>
-                        <Badge className="bg-orange-100 text-orange-700 border-orange-200 shrink-0">
-                          {getEventTypeName(event.type)}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-slate-600 line-clamp-1">{event.description}</p>
-                    </div>
-
-                    {/* Date & Time */}
-                    <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-orange-50 to-orange-50/50">
-                      <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-sm">
-                        <Calendar className="h-5 w-5 text-white" />
-                      </div>
+            ) : (
+              <div className="space-y-3">
+                {currentAttendance.map((record) => (
+                  <div
+                    key={record.membershipId}
+                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm"
+                  >
+                    <div className="flex items-center justify-between gap-3">
                       <div>
-                        <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">Date & Time</p>
-                        <p className="text-sm font-bold text-slate-900">
-                          {formatDate(event.date)} • {event.time}
+                        <p className="text-sm font-semibold text-slate-900">
+                          {record.name}
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          {record.email} • {record.phone}
                         </p>
                       </div>
+                      <Badge variant="outline" className="rounded-full text-xs">
+                        {record.membershipId}
+                      </Badge>
                     </div>
-
-                    {/* Attendance Display */}
-                    <div className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-purple-50/30 border border-slate-200">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-slate-600">Attendance</span>
-                        <Badge
-                          className={`${
-                            isHighAttendance
-                              ? "bg-green-100 text-green-700 border-green-200"
-                              : "bg-blue-100 text-blue-700 border-blue-200"
-                          }`}
-                        >
-                          {percentage}%
-                        </Badge>
-                      </div>
-                      <div className="flex items-baseline gap-2 mb-2">
-                        <span className="text-3xl font-bold text-slate-900">{event.attendees}</span>
-                        <span className="text-sm text-slate-500">/ {event.maxCapacity}</span>
-                      </div>
-                      <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
-                        <div
-                          className={`h-full bg-gradient-to-r ${isHighAttendance ? "from-green-500 to-green-600" : "from-blue-500 to-blue-600"} transition-all duration-500`}
-                          style={{ width: `${Math.min(percentage, 100)}%` }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Update Button */}
-                    <Button
-                      onClick={() => handleOpenUpdateDialog(event)}
-                      className="w-full h-11 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-lg hover:shadow-xl rounded-xl font-bold transition-all duration-300"
-                    >
-                      <Edit className="h-5 w-5 mr-2" />
-                      Update Attendance
-                    </Button>
+                    <p className="mt-2 text-xs text-slate-500">
+                      Marked at{" "}
+                      {new Date(record.markedAt).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </p>
                   </div>
-                </CardContent>
-              </Card>
-            )
-          })}
-        </div>
-      ) : (
-        /* Empty State */
-        <Card className="shadow-lg border-slate-200 rounded-2xl">
-          <CardContent className="p-12">
-            <div className="text-center space-y-4">
-              <div className="w-20 h-20 bg-gradient-to-br from-orange-100 to-purple-100 rounded-full flex items-center justify-center mx-auto">
-                <Sparkles className="h-10 w-10 text-orange-600" />
+                ))}
               </div>
-              <div>
-                <h3 className="text-xl font-bold text-slate-900 mb-2">No Events Found</h3>
-                <p className="text-slate-600 mb-4">
-                  {hasActiveFilters
-                    ? "No events match your filters. Try adjusting your search criteria."
-                    : "No events available for attendance tracking."}
-                </p>
-                {hasActiveFilters && (
-                  <Button
-                    onClick={clearFilters}
-                    variant="outline"
-                    className="border-orange-400 text-orange-600 hover:bg-orange-50"
-                  >
-                    <X className="h-4 w-4 mr-2" />
-                    Clear Filters
-                  </Button>
-                )}
-              </div>
-            </div>
+            )}
           </CardContent>
         </Card>
-      )}
-
-      {/* Create Attendance Dialog */}
-      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-bold">Create Attendance Record</DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="create-title">Event Title *</Label>
-              <Input
-                id="create-title"
-                placeholder="e.g., Sunday Service"
-                value={createForm.title}
-                onChange={(e) => setCreateForm((prev) => ({ ...prev, title: e.target.value }))}
-                className="h-11"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="create-type">Event Type *</Label>
-              <Select
-                value={createForm.type}
-                onValueChange={(value: EventAttendance["type"]) =>
-                  setCreateForm((prev) => ({ ...prev, type: value }))
-                }
-              >
-                <SelectTrigger className="h-11">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="sunday_service">Sunday Service</SelectItem>
-                  <SelectItem value="midweek">Mid-Week</SelectItem>
-                  <SelectItem value="special">Special Event</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="create-description">Description</Label>
-              <Textarea
-                id="create-description"
-                placeholder="Brief description..."
-                value={createForm.description}
-                onChange={(e) => setCreateForm((prev) => ({ ...prev, description: e.target.value }))}
-                rows={2}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="create-date">Date *</Label>
-                <Input
-                  id="create-date"
-                  type="date"
-                  value={createForm.date}
-                  onChange={(e) => setCreateForm((prev) => ({ ...prev, date: e.target.value }))}
-                  className="h-11"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="create-time">Time *</Label>
-                <Input
-                  id="create-time"
-                  type="time"
-                  value={createForm.time}
-                  onChange={(e) => setCreateForm((prev) => ({ ...prev, time: e.target.value }))}
-                  className="h-11"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="create-attendees">Attendees</Label>
-                <Input
-                  id="create-attendees"
-                  type="number"
-                  min="0"
-                  placeholder="e.g., 150"
-                  value={createForm.attendees}
-                  onChange={(e) => setCreateForm((prev) => ({ ...prev, attendees: e.target.value }))}
-                  className="h-11"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="create-capacity">Max Capacity</Label>
-                <Input
-                  id="create-capacity"
-                  type="number"
-                  min="0"
-                  placeholder="e.g., 200"
-                  value={createForm.maxCapacity}
-                  onChange={(e) => setCreateForm((prev) => ({ ...prev, maxCapacity: e.target.value }))}
-                  className="h-11"
-                />
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)} className="h-11">
-              Cancel
-            </Button>
-            <Button
-              onClick={handleCreateAttendance}
-              className="h-11 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white"
-            >
-              <CheckCircle2 className="mr-2 h-4 w-4" />
-              Create Record
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Update Attendance Dialog */}
-      <Dialog open={isUpdateDialogOpen} onOpenChange={setIsUpdateDialogOpen}>
-        <DialogContent className="sm:max-w-[450px]">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-bold">Update Attendance</DialogTitle>
-          </DialogHeader>
-
-          {selectedEvent && (
-            <div className="space-y-5 py-4">
-              {/* Event Info */}
-              <div className="p-4 rounded-xl bg-gradient-to-r from-orange-50 to-purple-50 border border-orange-200">
-                <p className="font-semibold text-slate-900 mb-1">{selectedEvent.title}</p>
-                <div className="flex items-center gap-2 text-sm text-slate-600">
-                  <Calendar className="h-4 w-4" />
-                  {formatDate(selectedEvent.date)} • {selectedEvent.time}
-                </div>
-                <div className="mt-2 text-sm text-slate-600">
-                  Max Capacity: <span className="font-bold text-slate-900">{selectedEvent.maxCapacity}</span>
-                </div>
-              </div>
-
-              {/* Attendance Input */}
-              <div className="space-y-2">
-                <Label htmlFor="attendance" className="text-slate-700 font-medium">
-                  Number of Attendees *
-                </Label>
-                <Input
-                  id="attendance"
-                  type="number"
-                  min="0"
-                  max={selectedEvent.maxCapacity}
-                  placeholder="Enter number of attendees"
-                  value={attendanceInput}
-                  onChange={(e) => setAttendanceInput(e.target.value)}
-                  className="h-12 text-lg"
-                />
-                <p className="text-xs text-slate-500">
-                  Enter the total number of people who attended this event
-                </p>
-              </div>
-            </div>
-          )}
-
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setIsUpdateDialogOpen(false)} className="h-11">
-              Cancel
-            </Button>
-            <Button
-              onClick={handleUpdateAttendance}
-              className="h-11 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-md"
-            >
-              <CheckCircle2 className="mr-2 h-4 w-4" />
-              Update Attendance
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      </div>
     </div>
   )
 }

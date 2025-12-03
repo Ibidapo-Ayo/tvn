@@ -126,3 +126,13 @@ export const programRegistrationSchema = z.object({
 
 export type ProgramRegistrationValues = z.infer<typeof programRegistrationSchema>
 
+// Public Event Registration Validation
+export const eventRegistrationSchema = z.object({
+  name: z.string().min(2, "Full name is required"),
+  email: z.string().email("Valid email is required"),
+  phone: z.string().min(10, "Enter a valid phone number"),
+  selectedEventId: z.string().min(1, "Please select an event to register"),
+})
+
+export type EventRegistrationValues = z.infer<typeof eventRegistrationSchema>
+

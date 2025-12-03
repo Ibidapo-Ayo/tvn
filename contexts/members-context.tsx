@@ -8,9 +8,9 @@ import React, {
   useCallback,
   useRef,
 } from "react"
-import { useMembers } from "@/hooks/use-members"
 import { Member } from "@/types/types"
 import { upcomingBirthdaysMembers } from "@/lib/utils"
+import { useMembers } from "@/hooks/use-members"
 
 interface MembersContextType {
   totalMembersCount: number
@@ -25,6 +25,7 @@ const MembersContext = createContext<MembersContextType | undefined>(undefined)
 
 export function MembersProvider({ children }: { children: React.ReactNode }) {
   const membersHook = useMembers()
+  const membersHookRef = useRef(membersHook)
   const [totalMembersCount, setTotalMembersCount] = useState(0)
   const [recentMembersCount, setRecentMembersCount] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
@@ -32,7 +33,6 @@ export function MembersProvider({ children }: { children: React.ReactNode }) {
   const [upcomingBirthdaysMembersList, setUpcomingBirthdaysMembersList] =
     useState<Member[]>([])
   const mountedRef = useRef(true)
-  const membersHookRef = useRef(membersHook)
 
   useEffect(() => {
     membersHookRef.current = membersHook

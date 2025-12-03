@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+const AUTH_REQUIRED = process.env.NEXT_PUBLIC_REQUIRE_AUTH === "true"
+
 export function middleware(request: NextRequest) {
+  if (!AUTH_REQUIRED) {
+    return NextResponse.next()
+  }
+
   const { pathname } = request.nextUrl;
   
   // Get the auth token from cookies

@@ -16,9 +16,9 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useEffect, useState } from "react";
 import { Event, Member } from "@/types/types";
 import { useRouter } from "next/navigation";
-import { useAll } from "@/hooks/use-all";
 import { useMembersContext } from "@/contexts/members-context";
 import { useEventsContext } from "@/contexts/events-context";
+import { useEvents } from "@/hooks/use-events";
 import {
   formatDate,
   getNextMemberBirthday,
@@ -27,7 +27,7 @@ import {
 
 export function DashboardOverview() {
   const router = useRouter();
-  const { getRecentEvents } = useAll();
+  const { getRecentEvents } = useEvents();
   const {
     totalMembersCount,
     members: allMembers,
@@ -49,7 +49,7 @@ export function DashboardOverview() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [recent] = await Promise.all([getRecentEvents(3)]);
+        const recent = await getRecentEvents(3);
 
         const now = new Date();
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -67,7 +67,7 @@ export function DashboardOverview() {
     };
 
     fetchData();
-  }, []);
+  }, [getRecentEvents, allMembers]);
 
   useEffect(() => {
     setMembersUpcomingBirthdays(upcomingBirthdaysMembersList);

@@ -1,17 +1,17 @@
-"use client"
+"use client";
 
-import { 
-  Calendar, 
-  Home, 
-  Users, 
-  UserCheck, 
-  MessageSquare, 
-  Settings, 
-  LogOut, 
+import {
+  Calendar,
+  Home,
+  Users,
+  UserCheck,
+  MessageSquare,
+  Settings,
+  LogOut,
   UserPlus,
   Sparkles,
-  TrendingUp
-} from "lucide-react"
+  TrendingUp,
+} from "lucide-react";
 
 import {
   Sidebar,
@@ -24,32 +24,23 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarHeader,
-} from "@/components/ui/sidebar"
-import { useAuth } from "@/hooks/use-auth"
-import { useEventsContext } from "@/contexts/events-context"
-import { useMembersContext } from "@/contexts/members-context"
-import { Button } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
-import { Badge } from "@/components/ui/badge"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { useState, useEffect } from "react"
-import Image from "next/image"
+} from "@/components/ui/sidebar";
+import { useAuth } from "@/components/auth-provider";
+import { useEventsContext } from "@/contexts/events-context";
+import { useMembersContext } from "@/contexts/members-context";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import Image from "next/image";
+import { AuthLabels } from "@/lib/utils";
 
 export function AppSidebar() {
-  const { logout } = useAuth()
-  const { upcomingEventsCount, totalEventsCount } = useEventsContext()
-  const { totalMembersCount } = useMembersContext()
-  const pathname = usePathname()
-  const [user, setUser] = useState<any>(null)
-
-  // Load user from localStorage
-  useEffect(() => {
-    const storedUser = localStorage.getItem("user")
-    if (storedUser) {
-      setUser(JSON.parse(storedUser))
-    }
-  }, [])
+  const { logout, user } = useAuth();
+  const { upcomingEventsCount, totalEventsCount } = useEventsContext();
+  const { totalMembersCount } = useMembersContext();
+  const pathname = usePathname();
 
   // Navigation items for the main application features
   const items = [
@@ -95,7 +86,7 @@ export function AppSidebar() {
       icon: Settings,
       badge: null,
     },
-  ]
+  ];
 
   return (
     <Sidebar collapsible="icon" className="border-r border-slate-200">
@@ -113,10 +104,12 @@ export function AppSidebar() {
             />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-bold text-sm text-slate-900 truncate">The Visionary Nation</p>
+            <p className="font-bold text-sm text-slate-900 truncate">
+              The Visionary Nation
+            </p>
             <p className="text-xs text-slate-600 truncate flex items-center gap-1">
               <Sparkles className="w-3 h-3 text-orange-500" />
-              {user?.name || "Administrator"}
+              {AuthLabels[user?.labels[0] as keyof typeof AuthLabels]}
             </p>
           </div>
         </div>
@@ -131,32 +124,43 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu className="space-y-1">
               {items.map((item) => {
-                const isActive = pathname === item.url
+                const isActive = pathname === item.url;
                 return (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton 
-                      asChild 
-                      isActive={isActive} 
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive}
                       tooltip={item.title}
                       className={`
                         rounded-xl transition-all duration-200
-                        ${isActive 
-                          ? 'bg-linear-to-r from-orange-500 to-orange-600 text-white shadow-lg shadow-orange-500/30 hover:shadow-xl hover:shadow-orange-500/40' 
-                          : 'hover:bg-slate-50 text-slate-700 hover:text-orange-600'
+                        ${
+                          isActive
+                            ? "bg-linear-to-r from-orange-500 to-orange-600 text-white shadow-lg shadow-orange-500/30 hover:shadow-xl hover:shadow-orange-500/40"
+                            : "hover:bg-slate-50 text-slate-700 hover:text-orange-600"
                         }
                       `}
                     >
-                      <Link href={item.url} className="flex items-center gap-3 px-3 py-2.5">
-                        <item.icon className={`h-5 w-5 ${isActive ? 'text-white' : 'text-slate-600'}`} />
-                        <span className="font-medium text-sm flex-1 text-left">{item.title}</span>
+                      <Link
+                        href={item.url}
+                        className="flex items-center gap-3 px-3 py-2.5"
+                      >
+                        <item.icon
+                          className={`h-5 w-5 ${
+                            isActive ? "text-white" : "text-slate-600"
+                          }`}
+                        />
+                        <span className="font-medium text-sm flex-1 text-left">
+                          {item.title}
+                        </span>
                         {item.badge && (
-                          <Badge 
-                            variant="secondary" 
+                          <Badge
+                            variant="secondary"
                             className={`
                               text-xs px-2 py-0.5 font-semibold
-                              ${isActive 
-                                ? 'bg-white/20 text-white border-white/30' 
-                                : 'bg-orange-100 text-orange-700 border-orange-200'
+                              ${
+                                isActive
+                                  ? "bg-white/20 text-white border-white/30"
+                                  : "bg-orange-100 text-orange-700 border-orange-200"
                               }
                             `}
                           >
@@ -166,7 +170,7 @@ export function AppSidebar() {
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                )
+                );
               })}
             </SidebarMenu>
           </SidebarGroupContent>
@@ -178,20 +182,28 @@ export function AppSidebar() {
         <div className="mx-3 p-4 rounded-xl bg-linear-to-br from-orange-50 via-white to-purple-50 border border-orange-100/50 shadow-sm">
           <div className="flex items-center gap-2 mb-3">
             <TrendingUp className="w-4 h-4 text-orange-600" />
-            <p className="text-xs font-bold text-slate-700 uppercase tracking-wide">Overview</p>
+            <p className="text-xs font-bold text-slate-700 uppercase tracking-wide">
+              Overview
+            </p>
           </div>
           <div className="space-y-2.5">
             <div className="flex justify-between items-center">
               <span className="text-sm text-slate-600">Total Members</span>
-              <span className="text-sm font-bold text-orange-600">{totalMembersCount}</span>
+              <span className="text-sm font-bold text-orange-600">
+                {totalMembersCount}
+              </span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-sm text-slate-600">Upcoming Events</span>
-              <span className="text-sm font-bold text-purple-600">{upcomingEventsCount}</span>
+              <span className="text-sm font-bold text-purple-600">
+                {upcomingEventsCount}
+              </span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-sm text-slate-600">Total Events</span>
-              <span className="text-sm font-bold text-green-600">{totalEventsCount}</span>
+              <span className="text-sm font-bold text-green-600">
+                {totalEventsCount}
+              </span>
             </div>
           </div>
         </div>
@@ -201,9 +213,9 @@ export function AppSidebar() {
       <SidebarFooter className="border-t border-slate-200/60 bg-slate-50/50 p-3">
         <SidebarMenu>
           <SidebarMenuItem>
-            <Button 
-              variant="ghost" 
-              className="w-full justify-start hover:bg-red-50 hover:text-red-600 transition-all duration-200 group rounded-xl" 
+            <Button
+              variant="ghost"
+              className="w-full justify-start hover:bg-red-50 hover:text-red-600 transition-all duration-200 group rounded-xl"
               onClick={logout}
             >
               <LogOut className="h-4 w-4 mr-2 group-hover:scale-110 transition-transform" />
@@ -213,5 +225,5 @@ export function AppSidebar() {
         </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
-  )
+  );
 }

@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner"
 import { User, MapPin, Church, Phone, Camera, FileSignature, CheckCircle2, Upload, ArrowRight, ArrowLeft, Fingerprint } from "lucide-react"
 import type { User as UserType } from "@/types/types"
-import { useAuth } from "@/hooks/use-auth"
+import { useMembers } from "@/hooks/use-members"
 
 interface MemberRegistrationProps {
   onComplete?: (member: Partial<UserType>) => void
@@ -26,7 +26,7 @@ const steps = [
 ]
 
 export function MemberRegistration({ onComplete }: MemberRegistrationProps) {
-  const { createMember } = useAuth()
+  const { createMember } = useMembers()
   const [currentStepIndex, setCurrentStepIndex] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState<Partial<UserType>>({
@@ -186,7 +186,7 @@ export function MemberRegistration({ onComplete }: MemberRegistrationProps) {
         role: formData.role || "member",
       }
 
-      const result = await createMember(memberData)
+      const result = await createMember(memberData as any)
       
       toast.success("Member registration completed successfully!", {
         description: `Member ID: ${result.id}`,
